@@ -426,7 +426,7 @@ function wp_rest_api_huiyan_status_page_callback() {
                         <h3>当前状态</h3>
                         <div class="huiyan-status-value">
                             <span class="status-indicator 
-                                <?php echo $status_data['status'] === 'ok' ? 'status-ok' : 'status-warning'; ?>">
+                                    <?php echo esc_attr($status_data['status'] === 'ok' ? 'status-ok' : 'status-warning'); ?>">
                                 <?php echo $status_data['status'] === 'ok' ? '正常' : '警告'; ?>
                             </span>
                         </div>
@@ -465,7 +465,7 @@ function wp_rest_api_huiyan_status_page_callback() {
                             <div class="huiyan-component-indicator">
                                 <span class="component-name"><?php echo ucfirst( str_replace( '_', ' ', $component_name ) ); ?></span>
                                 <span class="status-indicator 
-                                    <?php echo $component_status['status'] === 'ok' ? 'status-ok' : 'status-warning'; ?>">
+                                        <?php echo esc_attr($component_status['status'] === 'ok' ? 'status-ok' : 'status-warning'); ?>">
                                     <?php echo $component_status['status'] === 'ok' ? '正常' : '警告'; ?>
                                 </span>
                             </div>
@@ -492,7 +492,7 @@ function wp_rest_api_huiyan_status_page_callback() {
                                         <td><?php echo ucfirst( str_replace( '_', ' ', $component_name ) ); ?></td>
                                         <td>
                                             <span class="status-indicator 
-                                                <?php echo $component_status['status'] === 'ok' ? 'status-ok' : 'status-warning'; ?>">
+                                                <?php echo esc_attr($component_status['status'] === 'ok' ? 'status-ok' : 'status-warning'); ?>">
                                                 <?php echo $component_status['status'] === 'ok' ? '正常' : '警告'; ?>
                                             </span>
                                         </td>

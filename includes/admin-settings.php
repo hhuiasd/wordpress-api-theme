@@ -5,6 +5,7 @@
  * 提供主题的管理后台设置界面
  */
 
+
 // 添加设置菜单
 function wp_rest_api_huiyan_add_settings_menu() {
     // 添加主菜单
@@ -37,6 +38,11 @@ function wp_rest_api_huiyan_add_settings_menu() {
         'wp-rest-api-huiyan-status',
         'wp_rest_api_huiyan_status_page'
     );
+    
+    // 注意：已移除自定义文章类型和分类法管理菜单
+    // 主题现在使用WordPress原生的文章类型(post)和分类(category)/标签(post_tag)系统
+    
+    // API端点子菜单在api-endpoints.php文件中注册
 }
 add_action( 'admin_menu', 'wp_rest_api_huiyan_add_settings_menu' );
 
@@ -56,7 +62,7 @@ function wp_rest_api_huiyan_register_settings() {
     register_setting(
         'wp_rest_api_huiyan_cache',
         'wp_rest_api_huiyan_cache_dir',
-        array('default' => WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan')
+        array('default' => WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan') // WordPress环境中已定义
     );
     
     // 注册JWT认证设置
@@ -114,6 +120,38 @@ function wp_rest_api_huiyan_register_settings() {
         'wp_rest_api_huiyan_lockout_duration',
         array('default' => 3600)
     );
+    
+    // 注册优化设置
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_remove_version_header',
+        array('default' => true)
+    );
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_remove_toolbar',
+        array('default' => true)
+    );
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_disable_embeds',
+        array('default' => true)
+    );
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_disable_wordpress_embed',
+        array('default' => true)
+    );
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_disable_gutenberg',
+        array('default' => true)
+    );
+    register_setting(
+        'wp_rest_api_huiyan_optimization',
+        'wp_rest_api_huiyan_disable_widget_block_editor',
+        array('default' => false)
+    );
 }
 add_action( 'admin_init', 'wp_rest_api_huiyan_register_settings' );
 
@@ -127,6 +165,8 @@ function wp_rest_api_huiyan_settings_page() {
             <a href="#jwt" class="nav-tab" onclick="jQuery('.settings-tab').hide(); jQuery('#jwt-tab').show(); jQuery('.nav-tab').removeClass('nav-tab-active'); jQuery(this).addClass('nav-tab-active'); return false;">JWT认证</a>
             <a href="#cors" class="nav-tab" onclick="jQuery('.settings-tab').hide(); jQuery('#cors-tab').show(); jQuery('.nav-tab').removeClass('nav-tab-active'); jQuery(this).addClass('nav-tab-active'); return false;">跨域设置</a>
             <a href="#security" class="nav-tab" onclick="jQuery('.settings-tab').hide(); jQuery('#security-tab').show(); jQuery('.nav-tab').removeClass('nav-tab-active'); jQuery(this).addClass('nav-tab-active'); return false;">安全设置</a>
+            <a href="#optimization" class="nav-tab" onclick="jQuery('.settings-tab').hide(); jQuery('#optimization-tab').show(); jQuery('.nav-tab').removeClass('nav-tab-active'); jQuery(this).addClass('nav-tab-active'); return false;">性能优化</a>
+            <a href="#manual-optimization" class="nav-tab" onclick="jQuery('.settings-tab').hide(); jQuery('#manual-optimization-tab').show(); jQuery('.nav-tab').removeClass('nav-tab-active'); jQuery(this).addClass('nav-tab-active'); return false;">手动优化</a>
         </div>
         <!-- 缓存设置选项卡 -->
         <div id="cache-tab" class="settings-tab">
@@ -152,13 +192,116 @@ function wp_rest_api_huiyan_settings_page() {
                     <tr valign="top">
                         <th scope="row">缓存目录路径</th>
                         <td>
-                            <input type="text" name="wp_rest_api_huiyan_cache_dir" value="<?php echo esc_attr( get_option( 'wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan' ) ); ?>" class="regular-text" />
+                            <input type="text" name="wp_rest_api_huiyan_cache_dir" value="<?php echo esc_attr( get_option( 'wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan' ) ); ?>" class="regular-text" /> <!-- WordPress环境中已定义 -->
                             <p class="description">缓存文件存储路径，确保 WordPress 有写入权限。</p>
                         </td>
                     </tr>
                 </table>
                 <?php submit_button(); ?>
             </form>
+        </div>
+        <!-- 手动优化选项卡 -->
+        <div id="manual-optimization-tab" class="settings-tab" style="display:none;">
+            <h2>手动优化设置</h2>
+            <p>以下是可在 wp-config.php 文件中手动添加的配置项，与页面设置一一对应。复制下方代码并粘贴到 wp-config.php 文件中（建议放在文件开头的 &lt;?php 标签之后）。</p>
+            <p><strong>注意：</strong>wp-config.php 中的配置优先级高于页面设置。</p>
+            
+            <div class="wp-config-section">
+                <h3>API 缓存设置</h3>
+                <div class="wp-config-code-container">
+                    <pre><code id="api-cache-config">// API 缓存设置
+// 启用 API 缓存
+define('WP_REST_API_HUIYAN_CACHE_ENABLED', true);
+
+// 缓存持续时间（秒）
+define('WP_REST_API_HUIYAN_CACHE_DURATION', 3600);
+
+// 缓存目录路径
+// 注意：请根据您的WordPress安装路径调整以下路径
+define('WP_REST_API_HUIYAN_CACHE_DIR', dirname(__FILE__) . '/../wp-content/cache/wp-rest-api-huiyan');</code></pre>
+                    <button type="button" class="button button-secondary" onclick="copyToClipboard('api-cache-config')">复制代码</button>
+                </div>
+            </div>
+            
+            <div class="wp-config-section">
+                <h3>JWT 认证设置</h3>
+                <div class="wp-config-code-container">
+                    <pre><code id="jwt-config">// JWT 认证设置
+// 启用 JWT 认证
+define('WP_REST_API_HUIYAN_JWT_ENABLED', true);
+
+// JWT 密钥（请使用强随机密钥）
+define('WP_REST_API_HUIYAN_JWT_SECRET', 'your_strong_random_secret_key_here');
+
+// 令牌过期时间（秒）
+define('WP_REST_API_HUIYAN_JWT_EXPIRATION', 3600);</code></pre>
+                    <button type="button" class="button button-secondary" onclick="copyToClipboard('jwt-config')">复制代码</button>
+                </div>
+            </div>
+            
+            <div class="wp-config-section">
+                <h3>跨域（CORS）设置</h3>
+                <div class="wp-config-code-container">
+                    <pre><code id="cors-config">// 跨域（CORS）设置
+// 启用 CORS 支持
+define('WP_REST_API_HUIYAN_CORS_ENABLED', true);
+
+// 允许的来源域名（多个域名用逗号分隔，* 表示允许所有来源）
+define('WP_REST_API_HUIYAN_CORS_ORIGINS', '*');</code></pre>
+                    <button type="button" class="button button-secondary" onclick="copyToClipboard('cors-config')">复制代码</button>
+                </div>
+            </div>
+            
+            <div class="wp-config-section">
+                <h3>安全设置</h3>
+                <div class="wp-config-code-container">
+                    <pre><code id="security-config">// 安全设置
+// 禁用 XML-RPC
+define('WP_REST_API_HUIYAN_DISABLE_XMLRPC', true);
+
+// 隐藏 WordPress 版本信息
+define('WP_REST_API_HUIYAN_HIDE_VERSION', true);
+
+// 禁用更新提示
+define('WP_REST_API_HUIYAN_DISABLE_UPDATE_NOTICES', false);
+
+// 最大登录尝试次数
+define('WP_REST_API_HUIYAN_MAX_LOGIN_ATTEMPTS', 5);
+
+// 锁定时间（秒）
+define('WP_REST_API_HUIYAN_LOCKOUT_DURATION', 3600);</code></pre>
+                    <button type="button" class="button button-secondary" onclick="copyToClipboard('security-config')">复制代码</button>
+                </div>
+            </div>
+            
+            <div class="wp-config-section">
+                <h3>完整配置示例</h3>
+                <div class="wp-config-code-container">
+                    <pre><code id="complete-config">// WP REST API by Huiyan 完整配置
+
+// API 缓存设置
+define('WP_REST_API_HUIYAN_CACHE_ENABLED', true);
+define('WP_REST_API_HUIYAN_CACHE_DURATION', 3600);
+define('WP_REST_API_HUIYAN_CACHE_DIR', dirname(__FILE__) . '/../wp-content/cache/wp-rest-api-huiyan'); // 请根据您的安装路径调整
+
+// JWT 认证设置
+define('WP_REST_API_HUIYAN_JWT_ENABLED', true);
+define('WP_REST_API_HUIYAN_JWT_SECRET', 'your_strong_random_secret_key_here');
+define('WP_REST_API_HUIYAN_JWT_EXPIRATION', 3600);
+
+// 跨域（CORS）设置
+define('WP_REST_API_HUIYAN_CORS_ENABLED', true);
+define('WP_REST_API_HUIYAN_CORS_ORIGINS', '*');
+
+// 安全设置
+define('WP_REST_API_HUIYAN_DISABLE_XMLRPC', true);
+define('WP_REST_API_HUIYAN_HIDE_VERSION', true);
+define('WP_REST_API_HUIYAN_DISABLE_UPDATE_NOTICES', false);
+define('WP_REST_API_HUIYAN_MAX_LOGIN_ATTEMPTS', 5);
+define('WP_REST_API_HUIYAN_LOCKOUT_DURATION', 3600);</code></pre>
+                    <button type="button" class="button button-secondary" onclick="copyToClipboard('complete-config')">复制代码</button>
+                </div>
+            </div>
         </div>
         <!-- JWT认证选项卡 -->
         <div id="jwt-tab" class="settings-tab" style="display:none;">
@@ -264,15 +407,121 @@ function wp_rest_api_huiyan_settings_page() {
                 <?php submit_button(); ?>
             </form>
         </div>
+        <!-- 性能优化选项卡 -->
+        <div id="optimization-tab" class="settings-tab" style="display:none;">
+            <h2>性能优化设置</h2>
+            <form method="post" action="options.php">
+                <?php settings_fields( 'wp_rest_api_huiyan_optimization' ); ?>
+                <?php do_settings_sections( 'wp_rest_api_huiyan_optimization' ); ?>
+                
+                <h3>页面功能</h3>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row">移除页面头部版本号和服务发现标签代码</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_remove_version_header" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_remove_version_header' ) ); ?> />
+                            <p class="description">移除 WordPress 版本信息和服务发现标签，提高安全性和减少页面大小。</p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">移除工具栏和后台个人资料中工具栏相关选项</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_remove_toolbar" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_remove_toolbar' ) ); ?> />
+                            <p class="description">移除 WordPress 顶部工具栏，减少资源加载。</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <h3>嵌入功能</h3>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row">禁用Auto Embeds功能，加快页面解析速度</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_disable_embeds" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_disable_embeds' ) ); ?> />
+                            <p class="description">禁用 WordPress 自动嵌入功能，减少 HTTP 请求和脚本加载。</p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">屏蔽嵌入其他WordPress文章的Embed功能</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_disable_wordpress_embed" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_disable_wordpress_embed' ) ); ?> />
+                            <p class="description">阻止其他网站嵌入您的 WordPress 文章，减少服务器负载。</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <h3>古腾堡编辑器</h3>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row">屏蔽Gutenberg编辑器，换回经典编辑器</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_disable_gutenberg" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_disable_gutenberg' ) ); ?> />
+                            <p class="description">禁用新的 Gutenberg 区块编辑器，使用传统的 TinyMCE 编辑器。</p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">屏蔽小工具区块编辑器模式，切换回经典模式</th>
+                        <td>
+                            <input type="checkbox" name="wp_rest_api_huiyan_disable_widget_block_editor" value="1" <?php checked( 1, get_option( 'wp_rest_api_huiyan_disable_widget_block_editor' ) ); ?> />
+                            <p class="description">使用传统的小工具管理界面，而不是区块编辑器。</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button(); ?>
+            </form>
+        </div>
     </div>
     <script type="text/javascript">
         function generateRandomString(length) {
             var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=';
             var result = '';
-            for (var i = 0; i < length; i++) {
+            for (var i = 0; i <length; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             return result;
+        }
+        
+        // 复制到剪贴板功能
+        function copyToClipboard(elementId) {
+            var codeElement = document.getElementById(elementId);
+            var textToCopy = codeElement.textContent;
+            
+            // 创建临时文本区域
+            var textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            
+            // 选择并复制文本
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                
+                // 显示复制成功提示
+                var button = codeElement.parentNode.nextElementSibling;
+                var originalText = button.innerHTML;
+                button.innerHTML = '复制成功！';
+                button.classList.add('button-primary');
+                button.classList.remove('button-secondary');
+                
+                // 3秒后恢复按钮状态
+                setTimeout(function() {
+                    button.innerHTML = originalText;
+                    button.classList.remove('button-primary');
+                    button.classList.add('button-secondary');
+                }, 3000);
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动选择文本并复制。');
+            }
+            
+            // 移除临时文本区域
+            document.body.removeChild(textArea);
         }
     </script>
     <?php
@@ -284,7 +533,7 @@ function wp_rest_api_huiyan_status_page() {
     global $wp_version;
     
     // 检查缓存目录
-    $cache_dir = get_option('wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan');
+    $cache_dir = get_option('wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan'); // WordPress环境中已定义
     $cache_dir_exists = file_exists($cache_dir);
     $cache_dir_writable = $cache_dir_exists && is_writable($cache_dir);
     

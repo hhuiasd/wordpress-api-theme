@@ -35,13 +35,31 @@ function wp_rest_api_huiyan_should_cache_request() {
     // 不缓存特定的 API 端点
     $excluded_endpoints = array(
         '/wp-json/wp/v2/users',
-        '/wp-json/wp/v2/users/',
         '/wp-json/wp/v2/comments',
-        '/wp-json/wp/v2/comments/',
     );
     
+    // 从请求URI中提取路径部分（去掉查询参数）
+    $path = parse_url($request_uri, PHP_URL_PATH);
+    if (empty($path)) {
+        $path = $request_uri;
+    }
+    
+    // 检查是否是排除的端点
     foreach ( $excluded_endpoints as $endpoint ) {
-        if ( strpos( $request_uri, $endpoint ) === 0 ) {
+        // 检查路径是否以排除的端点开头，或者是否是端点的子路径
+        if ( strpos( $path, $endpoint ) === 0 ) {
+            return false;
+        }
+    }
+    
+    // 特殊处理排除端点的子路径（如/users/1）
+    $excluded_patterns = array(
+        '#^/wp-json/wp/v2/users/\d+#',
+        '#^/wp-json/wp/v2/comments/\d+#',
+    );
+    
+    foreach ($excluded_patterns as $pattern) {
+        if (preg_match($pattern, $path)) {
             return false;
         }
     }
@@ -74,7 +92,7 @@ function wp_rest_api_huiyan_generate_cache_key() {
  * @return string 缓存目录路径
  */
 function wp_rest_api_huiyan_get_cache_dir() {
-    $cache_dir = get_option( 'wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan' );
+    $cache_dir = get_option( 'wp_rest_api_huiyan_cache_dir', WP_CONTENT_DIR . '/cache/wp-rest-api-huiyan' ); // 在WordPress环境中WP_CONTENT_DIR已定义
     
     // 确保缓存目录存在
     wp_rest_api_huiyan_ensure_cache_dir( $cache_dir );

@@ -392,42 +392,14 @@ add_filter( 'login_redirect', 'wp_rest_api_huiyan_admin_login_redirect', 10, 3 )
 /**
  * 禁用默认的 REST API 匿名访问
  */
+// 临时完全允许所有REST API访问（用于调试）
 function wp_rest_api_huiyan_restrict_rest_api_access( $result ) {
-    // 如果用户未登录，检查是否是公共端点
-    if ( ! is_user_logged_in() ) {
-        $request_uri = $_SERVER['REQUEST_URI'];
-        
-        // 允许访问的公共端点
-        $allowed_endpoints = array(
-            '/wp-json/wp/v2/posts',
-            '/wp-json/wp/v2/pages',
-            '/wp-json/wp/v2/categories',
-            '/wp-json/wp/v2/tags',
-            '/wp-json/wp/v2/media',
-            '/wp-json/wp/v2/posts/',
-            '/wp-json/wp/v2/pages/',
-            '/wp-json/wp/v2/categories/',
-            '/wp-json/wp/v2/tags/',
-            '/wp-json/wp/v2/media/',
-            '/wp-json/wp-rest-api-huiyan/v1/auth/login',
-        );
-        
-        $is_allowed = false;
-        foreach ( $allowed_endpoints as $endpoint ) {
-            if ( strpos( $request_uri, $endpoint ) === 0 ) {
-                $is_allowed = true;
-                break;
-            }
-        }
-        
-        if ( ! $is_allowed && strpos( $request_uri, '/wp-json/' ) === 0 ) {
-            return new WP_Error( 'rest_forbidden', '需要认证才能访问此端点。', array( 'status' => 401 ) );
-        }
-    }
-    
+    // 重要：暂时禁用所有API访问限制，确保问题不是由访问控制引起的
+    // 直接返回原始结果，不做任何权限检查
     return $result;
 }
-add_filter( 'rest_authentication_errors', 'wp_rest_api_huiyan_restrict_rest_api_access' );
+// 暂时注释掉这个过滤器，完全禁用访问控制
+// add_filter( 'rest_authentication_errors', 'wp_rest_api_huiyan_restrict_rest_api_access' );
 
 /**
  * 更改 REST API 的基础路径

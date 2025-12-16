@@ -155,14 +155,8 @@ function wp_rest_api_huiyan_optimize_api_response($response, $post, $request) {
 // 应用于所有文章类型的REST API响应
 add_filter('rest_prepare_post', 'wp_rest_api_huiyan_optimize_api_response', 10, 3);
 
-// 允许自定义文章类型也应用同样的优化
-function wp_rest_api_huiyan_optimize_custom_post_types() {
-    $post_types = get_post_types(array('public' => true, '_builtin' => false), 'names');
-    foreach ($post_types as $post_type) {
-        add_filter('rest_prepare_' . $post_type, 'wp_rest_api_huiyan_optimize_api_response', 10, 3);
-    }
-}
-add_action('init', 'wp_rest_api_huiyan_optimize_custom_post_types', 100);
+// 注意：已移除自定义文章类型优化代码
+// 主题现在使用WordPress原生的文章类型(post)，其API优化已在rest_prepare_post过滤器中处理
 
 // 过滤REST API可用字段 - 移除敏感字段
 function wp_rest_api_huiyan_filter_fields($schema, $request) {
@@ -228,52 +222,56 @@ function wp_rest_api_huiyan_optimize_comment_response($response, $comment, $requ
 add_filter('rest_prepare_comment', 'wp_rest_api_huiyan_optimize_comment_response', 10, 3);
 
 // 自定义JSON错误响应格式
-function wp_rest_api_huiyan_json_error_response($error) {
+function wp_rest_api_huiyan_json_error_response($response) {
     // 确保是JSON请求
     if ( ! is_wp_rest_request() ) {
-        return $error;
+        return $response;
     }
     
-    // 获取错误数据
-    $data = $error->get_data();
-    
-    // 获取错误消息
-    $message = '';
-    if (is_wp_error($error)) {
-        // 如果是WP_Error对象
-        $message = $error->get_error_message();
-    } elseif (isset($data['message'])) {
-        // 从响应数据中获取消息
-        $message = $data['message'];
+    // 只处理错误响应，不处理正常响应
+    if (is_wp_error($response)) {
+        // 获取错误数据
+        $data = $response->get_data();
+        
+        // 获取错误消息
+        $message = $response->get_error_message();
+        
+        // 标准化错误格式
+        $error_data = array(
+            'code' => isset($data['status']) ? $data['status'] : 400,
+            'message' => $message,
+            'data' => isset($data['params']) ? $data['params'] : array(),
+            'timestamp' => current_time('timestamp'),
+        );
+        
+        // 更新错误数据
+        $response->set_data($error_data);
     }
     
-    // 标准化错误格式
-    $error_data = array(
-        'code' => isset($data['status']) ? $data['status'] : 400,
-        'message' => $message,
-        'data' => isset($data['params']) ? $data['params'] : array(),
-        'timestamp' => current_time('timestamp'),
-    );
-    
-    // 更新错误数据
-    $error->set_data($error_data);
-    
-    return $error;
+    // 对于正常响应，直接返回不做修改
+    return $response;
 }
 add_filter('rest_request_after_callbacks', 'wp_rest_api_huiyan_json_error_response');
 
 // 优化REST API性能 - 禁用不必要的查询
 function wp_rest_api_huiyan_optimize_queries($query) {
     if ( is_wp_rest_request() ) {
-        // 禁用修订版本查询
-        $query->set('no_found_rows', true);
+        // 获取当前的查询参数
+        $query_vars = $query->query_vars;
         
-        // 禁用自动加载元数据
-        $query->set('update_post_term_cache', false);
-        $query->set('update_post_meta_cache', false);
+        // 保留所有原始查询参数 - 不做任何修改
+        // 特别是确保保留category__in, orderby, order等参数
         
-        // 仅加载需要的字段
-        $query->set('fields', 'ids');
+        // 关键设置：启用行数计算，这对排序和分页至关重要
+        $query->set('no_found_rows', false);
+        
+        // 确保分类和元数据缓存都已启用
+        $query->set('update_post_term_cache', true); // 必须启用，以确保分类查询正常工作
+        $query->set('update_post_meta_cache', true); // 必须启用，以确保元数据查询正常工作
+        
+        // 不设置任何可能干扰原生查询逻辑的参数
+        // 特别注意：不设置'fields'参数，允许WordPress加载完整的文章对象
+        // 不设置任何可能覆盖用户传入参数的选项
     }
     return $query;
 }
